@@ -36,11 +36,12 @@ def show():
     # Sidebar for model selection and settings
     st.sidebar.header("⚙️ Model Configuration")
     
-    # Model selection
+    # Model selection - Random Forest is the best performing model based on analysis
     model_type = st.sidebar.selectbox(
         "Select Model",
         ["Logistic Regression", "Decision Tree", "Random Forest", "Gradient Boosting"],
-        index=0
+        index=2,  # Default to Random Forest (best performing model: 92.76% sensitivity, 93.38% precision)
+        help="Random Forest is pre-selected as it provides the best performance (92.76% sensitivity, 93.38% precision, ROC-AUC: 0.9413). You can change to other models if needed."
     )
     
     # File upload

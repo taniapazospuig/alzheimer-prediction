@@ -132,7 +132,6 @@ def show():
     st.header("📈 Analysis Sections")
     
     analysis_tabs = st.tabs([
-        "Dataset Info",
         "Target Distribution",
         "Numerical Analysis",
         "Categorical Analysis",
@@ -143,25 +142,6 @@ def show():
     ])
     
     with analysis_tabs[0]:
-        st.subheader("Dataset Information")
-        info = eda.get_dataset_info(data)
-        st.write(f"**Shape:** {info['shape']}")
-        st.write(f"**Columns:** {len(info['columns'])}")
-        
-        st.subheader("Data Types")
-        st.dataframe(pd.DataFrame({
-            'Column': list(info['dtypes'].keys()),
-            'Data Type': list(info['dtypes'].values())
-        }))
-        
-        st.subheader("Missing Values")
-        null_df = pd.DataFrame({
-            'Column': list(info['null_counts'].keys()),
-            'Null Count': list(info['null_counts'].values())
-        })
-        st.dataframe(null_df[null_df['Null Count'] > 0] if null_df['Null Count'].sum() > 0 else null_df)
-    
-    with analysis_tabs[1]:
         st.subheader("Target Variable Distribution")
         if 'Diagnosis' in data.columns:
             class_counts, class_props = eda.get_target_distribution(data)
@@ -190,7 +170,7 @@ def show():
         else:
             st.warning("Target variable 'Diagnosis' not found in dataset")
     
-    with analysis_tabs[2]:
+    with analysis_tabs[1]:
         st.subheader("Numerical Variables Analysis")
         num_vars = eda.get_numerical_variables(data)
         
@@ -226,7 +206,7 @@ def show():
         else:
             st.warning("No numerical variables found")
     
-    with analysis_tabs[3]:
+    with analysis_tabs[2]:
         st.subheader("Categorical Variables Analysis")
         cat_vars = eda.get_categorical_variables(data)
         
@@ -246,7 +226,7 @@ def show():
         else:
             st.warning("No categorical variables found")
     
-    with analysis_tabs[4]:
+    with analysis_tabs[3]:
         st.subheader("Correlation Analysis")
         num_vars = eda.get_numerical_variables(data)
         
@@ -305,7 +285,7 @@ def show():
         else:
             st.warning("Cannot compute correlations - missing numerical variables or target")
     
-    with analysis_tabs[5]:
+    with analysis_tabs[4]:
         st.subheader("Feature Importance (Correlation-based)")
         num_vars = eda.get_numerical_variables(data)
         
@@ -318,7 +298,7 @@ def show():
         else:
             st.warning("Cannot compute feature importance - missing numerical variables or target")
     
-    with analysis_tabs[6]:
+    with analysis_tabs[5]:
         st.subheader("Statistical Significance Tests")
         num_vars = eda.get_numerical_variables(data)
         
@@ -369,7 +349,7 @@ def show():
                 st.success(f"✅ {len(significant_cat)} categorical features are statistically significant (p < 0.05)")
                 st.dataframe(significant_cat[['Feature', 'P-value', 'Chi-square']])
     
-    with analysis_tabs[7]:
+    with analysis_tabs[6]:
         st.subheader("Risk Factor Analysis")
         binary_risk_factors = [
             'FamilyHistoryAlzheimers', 'CardiovascularDisease', 'Diabetes', 

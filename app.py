@@ -55,7 +55,7 @@ except ImportError as e:
     st.stop()
 
 # Sidebar navigation - clean and minimal
-st.sidebar.markdown("### 📋 Navigation Menu")
+st.sidebar.markdown("### Navigation Menu")
 page_options = [
     "📖 Introduction",
     "📊 Statistical Analysis",
