@@ -14,18 +14,35 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def show():
-    st.title("🎯 Patient Prediction")
+    st.title("🎯 Patient Risk Assessment")
     st.markdown("---")
+    
+    # Return to home button
+    if st.button("🏠 Return to Home", type="secondary"):
+        st.session_state.current_page = "📖 Introduction"
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Clinical context
+    st.info("""
+    **Clinical Context**: This page allows you to assess individual patient risk for Alzheimer's disease. 
+    Enter the patient's clinical information to get a risk assessment with probability scores and 
+    explanations of which factors contribute most to the assessment.
+    
+    **Important**: This tool supports clinical decision-making but does not replace comprehensive 
+    clinical assessment. Always interpret results in the context of the full patient evaluation.
+    """)
     
     # Check if model is trained
     if st.session_state.trained_model is None:
         st.warning("⚠️ No model trained yet. Please go to **Model Training** page first to train a model.")
         st.info("""
         Once you've trained a model, you can use this page to:
-        - Input patient features
-        - Get instant predictions
-        - See probability scores
-        - Understand feature contributions
+        - Enter individual patient clinical information
+        - Get risk assessments with probability scores
+        - See which factors contribute most to the risk assessment
+        - Understand the clinical reasoning behind the prediction
         """)
         st.stop()
     
@@ -41,8 +58,13 @@ def show():
     except:
         default_data = None
     
-    st.header("📝 Patient Information")
-    st.markdown("Enter patient features below. You can use default values or customize them.")
+    st.header("📝 Patient Clinical Information")
+    st.markdown("""
+    Enter the patient's clinical information below. Default values are provided based on typical 
+    patient data, but you should customize them with the actual patient's values for accurate assessment.
+    
+    **Note**: More accurate input data leads to more reliable risk assessments.
+    """)
     
     # Create input form
     patient_data = {}
@@ -154,16 +176,64 @@ def show():
                     delta=None
                 )
             
-            # Risk level
+            # Risk level with clinical interpretation
             if prob_alz >= 0.7:
                 st.error("⚠️ **High Risk**: Strong indication of Alzheimer's disease")
+                st.markdown("""
+                **Clinical Recommendation**: 
+                - Consider comprehensive neuropsychological evaluation
+                - Review cognitive assessments and functional status
+                - Discuss with patient and family about further diagnostic workup
+                - Consider referral to neurology or memory clinic
+                """)
             elif prob_alz >= 0.5:
                 st.warning("⚠️ **Moderate Risk**: Some indication of Alzheimer's disease")
+                st.markdown("""
+                **Clinical Recommendation**: 
+                - Monitor closely with follow-up assessments
+                - Consider additional cognitive screening
+                - Review risk factors and consider preventive interventions
+                - Discuss concerns with patient and family
+                """)
             else:
                 st.success("✅ **Low Risk**: Low probability of Alzheimer's disease")
+                st.markdown("""
+                **Clinical Recommendation**: 
+                - Continue routine monitoring
+                - Address any modifiable risk factors
+                - Maintain regular follow-up as clinically indicated
+                """)
+            
+            # Interpretation guide
+            with st.expander("📖 Understanding Risk Assessment", expanded=False):
+                st.markdown("""
+                **What the Probability Means**:
+                - **Probability Score**: The model's estimate of how likely this patient has Alzheimer's disease, 
+                  based on the clinical factors entered.
+                - **0.0-0.3 (0-30%)**: Low risk - unlikely to have Alzheimer's disease.
+                - **0.3-0.5 (30-50%)**: Low-moderate risk - some concerning factors present.
+                - **0.5-0.7 (50-70%)**: Moderate-high risk - concerning factors present, further evaluation recommended.
+                - **0.7-1.0 (70-100%)**: High risk - strong indication, comprehensive evaluation recommended.
+                
+                **Important Considerations**:
+                - **Not a diagnosis**: This is a risk assessment tool, not a diagnostic test.
+                - **Clinical context matters**: Interpret results in the context of the full patient evaluation.
+                - **False positives possible**: Some patients may be flagged who don't have the disease 
+                  (this is intentional to minimize missed cases).
+                - **False negatives possible**: Some patients with the disease may not be flagged 
+                  (though we optimize to minimize this).
+                - **Use with clinical judgment**: Always combine with comprehensive clinical assessment.
+                
+                **Next Steps**: Use the feature contributions below to understand which specific 
+                factors are driving this patient's risk assessment.
+                """)
             
             # Feature importance for this prediction
-            st.subheader("🔍 Feature Contributions")
+            st.subheader("🔍 Factors Contributing to Risk Assessment")
+            st.markdown("""
+            The following shows which clinical factors are most important for this patient's risk assessment. 
+            This helps you understand which specific patient characteristics are driving the prediction.
+            """)
             
             # Get feature importance based on model type
             if hasattr(model, 'feature_importances_'):
@@ -186,7 +256,25 @@ def show():
             # Visualizations side by side
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("#### Feature Importance")
+                st.markdown("#### Most Important Clinical Factors")
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret This Chart", expanded=False):
+                    st.markdown("""
+                    **What this shows**: Which clinical factors the model considers most important 
+                    for this patient's risk assessment.
+                    
+                    **Understanding the Chart**:
+                    - **Y-axis**: Clinical factors, ordered by importance.
+                    - **X-axis**: Importance score - how much the model relies on this factor.
+                    - **Longer bars**: More important factors for this patient.
+                    
+                    **Clinical Use**: 
+                    - Focus your clinical assessment on the top-ranked factors.
+                    - Validate that these factors align with your clinical assessment.
+                    - Use this to explain the risk assessment to patients and families.
+                    """)
+                
                 import matplotlib.pyplot as plt
                 fig1, ax1 = plt.subplots(figsize=(6, 5))
                 top_features = importance_df.head(10)
@@ -194,12 +282,33 @@ def show():
                 ax1.set_yticks(range(len(top_features)))
                 ax1.set_yticklabels(top_features['Feature'], fontsize=9)
                 ax1.set_xlabel('Importance', fontsize=10)
-                ax1.set_title('Top 10 Most Important Features', fontsize=11)
+                ax1.set_title('Top 10 Most Important Clinical Factors', fontsize=11)
                 plt.tight_layout()
                 st.pyplot(fig1, width='stretch')
             
             with col2:
-                st.markdown("#### Patient Values vs Average")
+                st.markdown("#### Patient Values vs Population Average")
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret This Chart", expanded=False):
+                    st.markdown("""
+                    **What this shows**: How this patient's values compare to the average patient 
+                    in the dataset for the most important clinical factors.
+                    
+                    **Understanding the Chart**:
+                    - **Blue bars**: This patient's actual values.
+                    - **Orange bars**: Average values from the dataset.
+                    - **Differences**: Show how this patient differs from the average.
+                    
+                    **Clinical Interpretation**:
+                    - **Patient values higher than average**: May indicate increased risk 
+                      (depending on the factor - e.g., age, blood pressure).
+                    - **Patient values lower than average**: May indicate decreased risk 
+                      (e.g., higher MMSE scores, better cognitive function).
+                    - **Use this to**: Identify which of this patient's specific values 
+                      are most concerning compared to typical patients.
+                    """)
+                
                 # Compare patient values with dataset average
                 if default_data is not None:
                     fig2, ax2 = plt.subplots(figsize=(6, 5))
@@ -223,11 +332,14 @@ def show():
                     st.info("Dataset not available for comparison")
             
             # Patient values for top features
-            st.subheader("📋 Patient Values (Top Features)")
+            st.subheader("📋 Patient Clinical Values (Most Important Factors)")
+            st.markdown("""
+            Review the patient's actual values for the factors that most influence their risk assessment.
+            """)
             top_features = importance_df.head(10)
             top_patient_values = pd.DataFrame({
-                'Feature': top_features['Feature'],
-                'Value': top_features['Patient Value']
+                'Clinical Factor': top_features['Feature'],
+                'Patient Value': top_features['Patient Value']
             })
             st.dataframe(top_patient_values, width='stretch')
             

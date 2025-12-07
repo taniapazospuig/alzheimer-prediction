@@ -16,8 +16,22 @@ from models import logistic_regression, decision_tree, random_forest, gradient_b
 
 
 def show():
-    st.title("🤖 Model Training")
+    st.title("⚙️ Model Training")
     st.markdown("---")
+    
+    # Return to home button
+    if st.button("🏠 Return to Home", type="secondary"):
+        st.session_state.current_page = "📖 Introduction"
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Clinical context
+    st.info("""
+    **Clinical Context**: This page trains prediction models to assess Alzheimer's disease risk. 
+    All performance metrics and visualizations include clinical interpretation guides to help you 
+    understand what they mean for patient care.
+    """)
     
     # Sidebar for model selection and settings
     st.sidebar.header("⚙️ Model Configuration")
@@ -109,29 +123,72 @@ def show():
         
         st.header("📊 Model Performance")
         
+        # Clinical interpretation of metrics
+        with st.expander("📖 Understanding Performance Metrics", expanded=False):
+            st.markdown("""
+            **Key Metrics for Clinical Decision-Making**:
+            
+            - **Accuracy**: Overall percentage of correct predictions. 
+              *Clinical meaning*: How often the model is right overall.
+            
+            - **Sensitivity (Recall)**: Percentage of Alzheimer's patients correctly identified.
+              *Clinical meaning*: How well the model catches true cases. **This is critical** - 
+              we want to minimize missed cases. Target: ≥90%.
+            
+            - **Specificity**: Percentage of non-Alzheimer's patients correctly identified.
+              *Clinical meaning*: How well the model avoids false alarms.
+            
+            - **Precision**: Of patients flagged as high risk, what percentage actually have Alzheimer's.
+              *Clinical meaning*: When the model says "high risk," how often is it correct.
+            
+            - **F1-Score**: Balance between precision and sensitivity.
+              *Clinical meaning*: Overall model performance considering both metrics.
+            
+            **For Alzheimer's screening, we prioritize high Sensitivity** to ensure we don't miss 
+            patients who need early intervention, even if this means some false positives that 
+            can be ruled out with further testing.
+            """)
+        
         # Metrics display
         metrics = results['metrics']
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Accuracy", f"{metrics['Accuracy']:.4f}")
+            accuracy = metrics['Accuracy']
+            st.metric("Accuracy", f"{accuracy:.1%}", 
+                     delta="Good" if accuracy > 0.80 else "Fair" if accuracy > 0.70 else "Needs Improvement")
         with col2:
-            st.metric("Precision", f"{metrics['Precision']:.4f}")
+            precision = metrics['Precision']
+            st.metric("Precision", f"{precision:.1%}",
+                     delta="Good" if precision > 0.70 else "Fair" if precision > 0.60 else "Needs Improvement")
         with col3:
-            st.metric("Recall (Sensitivity)", f"{metrics['Recall']:.4f}")
+            recall = metrics['Recall']
+            st.metric("Sensitivity (Recall)", f"{recall:.1%}",
+                     delta="Excellent" if recall >= 0.90 else "Good" if recall >= 0.80 else "Needs Improvement",
+                     delta_color="normal" if recall >= 0.90 else "inverse")
         with col4:
-            st.metric("F1-Score", f"{metrics['F1-Score']:.4f}")
+            f1 = metrics['F1-Score']
+            st.metric("F1-Score", f"{f1:.1%}",
+                     delta="Good" if f1 > 0.70 else "Fair" if f1 > 0.60 else "Needs Improvement")
         
         col5, col6, col7, col8 = st.columns(4)
         with col5:
-            st.metric("ROC-AUC", f"{metrics.get('ROC-AUC', 0):.4f}")
+            roc_auc = metrics.get('ROC-AUC', 0)
+            st.metric("ROC-AUC", f"{roc_auc:.3f}",
+                     delta="Excellent" if roc_auc > 0.90 else "Good" if roc_auc > 0.80 else "Fair")
         with col6:
-            st.metric("PR-AUC", f"{metrics.get('PR-AUC', 0):.4f}")
+            pr_auc = metrics.get('PR-AUC', 0)
+            st.metric("PR-AUC", f"{pr_auc:.3f}",
+                     delta="Excellent" if pr_auc > 0.80 else "Good" if pr_auc > 0.70 else "Fair")
         with col7:
-            st.metric("False Negatives", metrics['False Negatives'], 
-                     delta=f"-{metrics['False Negatives']}" if metrics['False Negatives'] > 0 else None)
+            fn = metrics['False Negatives']
+            st.metric("False Negatives (Missed Cases)", fn, 
+                     delta=f"⚠️ {fn} missed" if fn > 0 else "✅ None",
+                     delta_color="inverse" if fn > 0 else "normal")
         with col8:
-            st.metric("False Positives", metrics['False Positives'])
+            fp = metrics['False Positives']
+            st.metric("False Positives", fp,
+                     delta=f"{fp} false alarms" if fp > 0 else "None")
         
         # Detailed metrics table
         st.subheader("📋 Detailed Metrics")
@@ -175,10 +232,59 @@ def show():
         with col1:
             fig_cm = plot_cm(y_test, y_pred, f"{model_type}")
             st.pyplot(fig_cm, width='stretch')
+            
+            # Confusion matrix interpretation
+            with st.expander("📖 How to Interpret the Confusion Matrix", expanded=False):
+                st.markdown("""
+                **What this shows**: A breakdown of the model's predictions compared to actual diagnoses.
+                
+                **Understanding the Four Quadrants**:
+                
+                1. **Top Left (True Negatives)**: Patients correctly identified as NOT having Alzheimer's.
+                   *Clinical meaning*: Correctly reassured patients. Higher is better.
+                
+                2. **Top Right (False Positives)**: Patients incorrectly flagged as having Alzheimer's.
+                   *Clinical meaning*: False alarms - these patients will need further testing but don't have the disease.
+                   Some false positives are acceptable to avoid missing true cases.
+                
+                3. **Bottom Left (False Negatives)**: Patients with Alzheimer's that the model missed.
+                   *Clinical meaning*: **CRITICAL** - These are missed cases. We want this number as low as possible.
+                   This is our highest priority to minimize.
+                
+                4. **Bottom Right (True Positives)**: Patients correctly identified as having Alzheimer's.
+                   *Clinical meaning*: Correctly identified cases that need intervention. Higher is better.
+                
+                **Clinical Goal**: Minimize False Negatives (bottom left) even if this increases False Positives.
+                """)
         
         with col2:
             fig_roc = plot_roc(y_test, y_proba, f"{model_type}")
             st.pyplot(fig_roc, width='stretch')
+            
+            # ROC curve interpretation
+            with st.expander("📖 How to Interpret the ROC Curve", expanded=False):
+                st.markdown("""
+                **What this shows**: The model's ability to distinguish between patients with and without Alzheimer's.
+                
+                **Understanding the Curve**:
+                - **X-axis (False Positive Rate)**: Percentage of non-Alzheimer's patients incorrectly flagged.
+                - **Y-axis (True Positive Rate / Sensitivity)**: Percentage of Alzheimer's patients correctly identified.
+                - **Diagonal line**: Performance of random guessing (no better than chance).
+                
+                **Clinical Interpretation**:
+                - **Curve above diagonal**: Model is better than random guessing.
+                - **Curve closer to top-left corner**: Better performance.
+                  - High sensitivity (top) = catches most true cases
+                  - Low false positive rate (left) = fewer false alarms
+                - **AUC (Area Under Curve)**: 
+                  - 0.90-1.0: Excellent discrimination
+                  - 0.80-0.90: Good discrimination
+                  - 0.70-0.80: Fair discrimination
+                  - <0.70: Poor discrimination
+                
+                **For Alzheimer's screening**: We want high sensitivity (top of the curve), 
+                even if this means more false positives (right side of curve).
+                """)
         
         # Get feature importance before using it
         feature_importance = results['feature_importance']
@@ -188,10 +294,55 @@ def show():
         with col3:
             fig_pr = plot_pr(y_test, y_proba, f"{model_type}")
             st.pyplot(fig_pr, width='stretch')
+            
+            # Precision-Recall curve interpretation
+            with st.expander("📖 How to Interpret the Precision-Recall Curve", expanded=False):
+                st.markdown("""
+                **What this shows**: The trade-off between precision and sensitivity, especially useful 
+                when dealing with imbalanced datasets (more non-Alzheimer's than Alzheimer's patients).
+                
+                **Understanding the Curve**:
+                - **X-axis (Recall/Sensitivity)**: Percentage of Alzheimer's patients correctly identified.
+                - **Y-axis (Precision)**: Of patients flagged as high risk, what percentage actually have Alzheimer's.
+                
+                **Clinical Interpretation**:
+                - **Curve closer to top-right**: Better performance (high precision AND high sensitivity).
+                - **High Recall (right side)**: Catches most true cases - **this is our priority**.
+                - **High Precision (top)**: When model flags someone, it's usually correct.
+                - **AUC (Area Under Curve)**:
+                  - 0.90-1.0: Excellent
+                  - 0.80-0.90: Good
+                  - 0.70-0.80: Fair
+                  - <0.70: Poor
+                
+                **Clinical Goal**: We prioritize high recall (sensitivity) to minimize missed cases, 
+                even if this means lower precision (more false positives that can be ruled out with further testing).
+                """)
         
         with col4:
             fig_importance = plot_importance(feature_importance)
             st.pyplot(fig_importance, width='stretch')
+            
+            # Feature importance interpretation
+            with st.expander("📖 How to Interpret Feature Importance", expanded=False):
+                st.markdown("""
+                **What this shows**: Which clinical factors the model considers most important for prediction.
+                
+                **Understanding the Chart**:
+                - **Longer bars**: More important features for the model's predictions.
+                - **Top features**: These are the key factors the model uses to assess risk.
+                
+                **Clinical Interpretation**:
+                - **High importance features**: These are the primary risk factors the model relies on.
+                  Review if these align with known clinical risk factors for Alzheimer's.
+                - **Clinical validation**: Check if the top features make clinical sense.
+                  For example, MMSE scores, age, and family history are expected to be important.
+                - **Unexpected features**: If unusual features rank high, investigate why - 
+                  could indicate data quality issues or interesting clinical relationships.
+                
+                **Use this to**: Understand which patient factors you should pay most attention to 
+                when using the model for risk assessment.
+                """)
         
         # Feature importance table (already displayed above in plot)
         st.subheader("🔍 Feature Importance Table")
@@ -213,10 +364,31 @@ def show():
             y_test, y_proba, metric='f1', min_recall=0.90
         )
         
-        st.write(f"**Optimal Threshold (≥90% recall):** {optimal_thresh:.4f}")
+        st.write(f"**Optimal Threshold (≥90% sensitivity):** {optimal_thresh:.4f}")
         st.write(f"**Precision at optimal threshold:** {optimal_metrics['precision']:.4f}")
-        st.write(f"**Recall at optimal threshold:** {optimal_metrics['recall']:.4f}")
+        st.write(f"**Sensitivity at optimal threshold:** {optimal_metrics['recall']:.4f}")
         st.write(f"**F1-Score at optimal threshold:** {optimal_metrics['f1']:.4f}")
+        
+        # Threshold interpretation
+        with st.expander("📖 Understanding Threshold Optimization", expanded=False):
+            st.markdown("""
+            **What this shows**: The optimal probability cutoff for making predictions, 
+            optimized to meet clinical goals (≥90% sensitivity).
+            
+            **Understanding Thresholds**:
+            - **Default (0.5)**: Standard cutoff - if probability ≥ 50%, predict Alzheimer's.
+            - **Lower threshold (e.g., 0.3)**: More sensitive - flags more patients as high risk.
+              *Clinical impact*: Catches more true cases but also more false positives.
+            - **Higher threshold (e.g., 0.7)**: More specific - only flags high-probability cases.
+              *Clinical impact*: Fewer false alarms but may miss some true cases.
+            
+            **Clinical Goal**: We optimize for ≥90% sensitivity to minimize missed cases.
+            This means we're willing to accept more false positives (which can be ruled out 
+            with further testing) to ensure we don't miss patients who need early intervention.
+            
+            **How to Use**: When making predictions, use this threshold. Patients with probability 
+            above this threshold should be flagged for further evaluation.
+            """)
         
     else:
         st.info("👈 Select a model and click 'Train Model' to get started!")

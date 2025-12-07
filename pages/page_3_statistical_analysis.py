@@ -14,6 +14,20 @@ def show():
     st.title("📊 Statistical Analysis")
     st.markdown("---")
     
+    # Return to home button
+    if st.button("🏠 Return to Home", type="secondary"):
+        st.session_state.current_page = "📖 Introduction"
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Clinical context header
+    st.info("""
+    **Clinical Context**: This page helps you explore patient data to identify patterns and risk factors 
+    associated with Alzheimer's disease. All visualizations include interpretation guides to help you 
+    understand the clinical significance of the findings.
+    """)
+    
     # File upload section
     st.header("📁 Data Loading")
     
@@ -159,6 +173,20 @@ def show():
             
             fig = eda.plot_target_distribution(data)
             st.pyplot(fig)
+            
+            # Interpretation guide
+            with st.expander("📖 How to Interpret This Chart", expanded=False):
+                st.markdown("""
+                **What this shows**: The distribution of patients with and without Alzheimer's disease in your dataset.
+                
+                **Clinical Interpretation**:
+                - **Balance**: A balanced dataset (close to 50/50) is ideal for training models. 
+                  If one group is much larger than the other, the model may be biased.
+                - **Sample Size**: Ensure you have enough patients in each group for reliable analysis.
+                  Generally, at least 30-50 patients per group is recommended.
+                - **Clinical Relevance**: This distribution should reflect your clinical population. 
+                  If it doesn't match your practice, consider filtering the data.
+                """)
         else:
             st.warning("Target variable 'Diagnosis' not found in dataset")
     
@@ -180,6 +208,21 @@ def show():
             if selected_vars and 'Diagnosis' in data.columns:
                 fig = eda.plot_numerical_vs_target(data, selected_vars, max_vars=6)
                 st.pyplot(fig)
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret These Charts", expanded=False):
+                    st.markdown("""
+                    **What these show**: How clinical measurements differ between patients with and without Alzheimer's disease.
+                    
+                    **Clinical Interpretation**:
+                    - **Box Plots**: The boxes show the middle 50% of values (interquartile range). 
+                      The line in the box is the median. Whiskers extend to show the range.
+                    - **Differences**: If the boxes for "Alzheimer" and "No Alzheimer" don't overlap much, 
+                      this suggests the measurement may be a useful predictor.
+                    - **Outliers**: Points beyond the whiskers are unusual values. Review these for data quality.
+                    - **Clinical Significance**: Look for measurements where Alzheimer's patients consistently 
+                      have higher or lower values (e.g., lower MMSE scores, higher age).
+                    """)
         else:
             st.warning("No numerical variables found")
     
@@ -212,10 +255,53 @@ def show():
             fig = eda.plot_correlation_matrix(data, num_vars)
             st.pyplot(fig)
             
+            # Interpretation guide for correlation matrix
+            with st.expander("📖 How to Interpret the Correlation Matrix", expanded=False):
+                st.markdown("""
+                **What this shows**: How strongly different clinical measurements are related to each other.
+                
+                **Understanding the Colors**:
+                - **Red (positive correlation)**: When one measurement increases, the other tends to increase.
+                  Example: Age and blood pressure often increase together.
+                - **Blue (negative correlation)**: When one measurement increases, the other tends to decrease.
+                  Example: MMSE scores may decrease as age increases.
+                - **White (near zero)**: The measurements are not strongly related.
+                
+                **Clinical Interpretation**:
+                - **Strong correlations (close to +1 or -1)**: These measurements provide similar information.
+                  You may not need both in a prediction model.
+                - **Moderate correlations (0.3-0.7)**: These can be useful predictors that capture different aspects.
+                - **Weak correlations (<0.3)**: These may not be strong predictors individually, 
+                  but could be useful in combination with other factors.
+                """)
+            
             # Target correlations
             st.subheader("Correlations with Target Variable")
             target_corr = eda.get_target_correlations(data, num_vars)
             st.dataframe(target_corr.to_frame('Correlation').head(15))
+            
+            # Interpretation guide for target correlations
+            with st.expander("📖 How to Interpret Target Correlations", expanded=False):
+                st.markdown("""
+                **What this shows**: How strongly each clinical measurement is related to Alzheimer's diagnosis.
+                
+                **Understanding Correlation Values**:
+                - **+1.0**: Perfect positive relationship (rare in medicine)
+                - **+0.5 to +0.9**: Strong positive relationship - higher values associated with Alzheimer's
+                - **+0.3 to +0.5**: Moderate positive relationship
+                - **0 to +0.3**: Weak positive relationship
+                - **0 to -0.3**: Weak negative relationship
+                - **-0.3 to -0.5**: Moderate negative relationship - lower values associated with Alzheimer's
+                - **-0.5 to -0.9**: Strong negative relationship
+                - **-1.0**: Perfect negative relationship (rare)
+                
+                **Clinical Interpretation**:
+                - **Higher absolute values** (closer to 1 or -1) indicate stronger predictive factors.
+                - **Positive correlations**: Higher values of this measurement are associated with Alzheimer's.
+                  Example: Age (older patients more likely to have Alzheimer's).
+                - **Negative correlations**: Lower values are associated with Alzheimer's.
+                  Example: MMSE scores (lower cognitive scores indicate higher risk).
+                """)
         else:
             st.warning("Cannot compute correlations - missing numerical variables or target")
     
@@ -244,6 +330,29 @@ def show():
             if len(significant) > 0:
                 st.success(f"✅ {len(significant)} features are statistically significant (p < 0.05)")
                 st.dataframe(significant[['Feature', 'P-value', 'Difference']])
+            
+            # Interpretation guide
+            with st.expander("📖 How to Interpret Statistical Tests", expanded=False):
+                st.markdown("""
+                **What these tests show**: Whether there are real differences in clinical measurements 
+                between patients with and without Alzheimer's disease, or if differences could be due to chance.
+                
+                **Understanding P-values**:
+                - **p < 0.05**: Statistically significant - the difference is unlikely due to chance alone.
+                  This suggests the measurement may be a useful predictor.
+                - **p ≥ 0.05**: Not statistically significant - the difference could be due to chance.
+                  This doesn't mean the measurement is useless, but the evidence is weaker.
+                
+                **Clinical Interpretation**:
+                - **Statistically significant features** are good candidates for inclusion in prediction models.
+                - **P-values close to 0.05** should be interpreted cautiously - consider clinical relevance.
+                - **Large sample sizes** make it easier to find statistical significance, even for small differences.
+                - **Clinical significance** (practical importance) is different from statistical significance.
+                  A small difference can be statistically significant with large samples but may not be clinically meaningful.
+                
+                **Difference Column**: Shows the average difference between groups. 
+                Positive values mean Alzheimer's patients have higher values; negative means lower values.
+                """)
         else:
             st.warning("Cannot perform statistical tests - missing numerical variables or target")
         

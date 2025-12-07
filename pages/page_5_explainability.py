@@ -18,14 +18,28 @@ def show():
     st.title("🔍 Model Explainability")
     st.markdown("---")
     
+    # Return to home button
+    if st.button("🏠 Return to Home", type="secondary"):
+        st.session_state.current_page = "📖 Introduction"
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Clinical context
+    st.info("""
+    **Clinical Context**: This page helps you understand how the model makes predictions. 
+    You can see which clinical factors are most important overall (Global) or for specific 
+    patients (Local). All visualizations include interpretation guides.
+    """)
+    
     # Check if model is trained
     if st.session_state.trained_model is None:
         st.warning("⚠️ No model trained yet. Please go to **Model Training** page first to train a model.")
         st.info("""
         Once you've trained a model, you can use this page to:
-        - View global feature importance
-        - Understand individual predictions
-        - Compare explainability methods
+        - View which clinical factors are most important for predictions
+        - Understand why specific patients are flagged as high risk
+        - See how individual patient factors contribute to their risk assessment
         """)
         st.stop()
     
@@ -52,7 +66,13 @@ def show():
     # Main content
     if analysis_type == "Global (Overall Model)":
         st.header("🌐 Global Explainability")
-        st.markdown("Understand which features are most important across all predictions.")
+        st.markdown("""
+        **What this shows**: Which clinical factors are most important for the model's predictions 
+        across all patients. This helps you understand the model's overall decision-making process.
+        
+        **Clinical Use**: Use this to validate that the model is focusing on clinically relevant 
+        risk factors (e.g., MMSE scores, age, family history) rather than spurious correlations.
+        """)
         
         if explainability_method == "SHAP":
             show_shap_global(model, data_dict, model_type)
@@ -63,7 +83,15 @@ def show():
     
     else:  # Local explanations
         st.header("🔬 Local Explainability")
-        st.markdown("Understand why the model made specific predictions for individual cases.")
+        st.markdown("""
+        **What this shows**: Why the model made a specific prediction for an individual patient. 
+        This helps you understand which of this patient's specific factors contributed to their risk assessment.
+        
+        **Clinical Use**: Use this to:
+        - Explain predictions to patients and families
+        - Identify which specific factors are driving a patient's risk
+        - Validate that the model's reasoning aligns with clinical assessment
+        """)
         
         # Select sample to explain
         X_test = data_dict['X_test']
@@ -121,8 +149,11 @@ def show_shap_global(model, data_dict, model_type):
         
         st.subheader("SHAP Global Explanations")
         st.markdown("""
-        SHAP (SHapley Additive exPlanations) values provide a unified measure of feature importance
-        based on game theory. They show how each feature contributes to the model's predictions.
+        **SHAP (SHapley Additive exPlanations)** provides a mathematically rigorous way to measure 
+        how much each clinical factor contributes to predictions. It's based on game theory principles.
+        
+        **Clinical Interpretation**: SHAP values show which factors the model considers most important 
+        when making predictions. Higher absolute SHAP values indicate more important factors.
         """)
         
         X_test = data_dict['X_test']
@@ -151,6 +182,28 @@ def show_shap_global(model, data_dict, model_type):
             with col1:
                 st.markdown("#### Summary Plot")
                 st.markdown("Shows feature importance and impact direction")
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret This Plot", expanded=False):
+                    st.markdown("""
+                    **What this shows**: Which clinical factors are most important and how they affect predictions.
+                    
+                    **Understanding the Plot**:
+                    - **Y-axis**: Clinical factors, ordered by importance (most important at top).
+                    - **X-axis**: SHAP value - how much this factor pushes the prediction.
+                    - **Color**: The actual value of the factor (red = high, blue = low).
+                    
+                    **Clinical Interpretation**:
+                    - **Points to the right (positive SHAP)**: This factor increases Alzheimer's risk.
+                    - **Points to the left (negative SHAP)**: This factor decreases Alzheimer's risk.
+                    - **Spread of points**: Shows how the factor's impact varies across patients.
+                    - **Red points on right**: High values of this factor increase risk.
+                    - **Blue points on right**: Low values of this factor increase risk.
+                    
+                    **Example**: If MMSE scores are at the top with points mostly on the left (blue/red), 
+                    it means lower MMSE scores (blue) push predictions toward Alzheimer's, 
+                    which aligns with clinical knowledge.
+                    """)
                 plt.ioff()  # Turn off interactive mode
                 try:
                     shap.summary_plot(shap_values_class1, X_test_sample, show=False)
@@ -179,6 +232,27 @@ def show_shap_global(model, data_dict, model_type):
             with col2:
                 st.markdown("#### Bar Plot (Mean |SHAP|)")
                 st.markdown("Mean absolute SHAP values per feature")
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret This Plot", expanded=False):
+                    st.markdown("""
+                    **What this shows**: The average importance of each clinical factor across all patients.
+                    
+                    **Understanding the Plot**:
+                    - **Y-axis**: Clinical factors, ordered by average importance.
+                    - **X-axis**: Mean absolute SHAP value - average impact on predictions.
+                    - **Longer bars**: More important factors for the model.
+                    
+                    **Clinical Interpretation**:
+                    - **Top factors**: These are the primary risk factors the model uses.
+                      Review if these align with known clinical risk factors.
+                    - **Clinical validation**: Check if the ranking makes clinical sense.
+                      For example, MMSE scores, age, and cognitive assessments should rank high.
+                    - **Unexpected rankings**: If unusual factors rank high, investigate why.
+                    
+                    **Use this to**: Understand which patient factors you should prioritize 
+                    when assessing Alzheimer's risk.
+                    """)
                 try:
                     shap.plots.bar(shap_values[:,:,1] if len(shap_values.shape) == 3 else shap_values, show=False)
                     fig2 = plt.gcf()  # Get current figure
@@ -377,6 +451,10 @@ def show_shap_local(model, data_dict, sample_idx, model_type):
         import shap
         
         st.subheader("SHAP Local Explanation")
+        st.markdown("""
+        **What this shows**: How each of this patient's specific clinical factors contributed 
+        to their individual risk prediction.
+        """)
         
         X_test = data_dict['X_test']
         X_sample = X_test.iloc[sample_idx:sample_idx+1]
@@ -399,6 +477,28 @@ def show_shap_local(model, data_dict, sample_idx, model_type):
             with col1:
                 st.markdown("#### Waterfall Plot")
                 st.markdown("Shows how each feature pushes the prediction")
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret This Plot", expanded=False):
+                    st.markdown("""
+                    **What this shows**: Step-by-step how each clinical factor moves this patient's 
+                    risk prediction from the baseline (average risk) to the final prediction.
+                    
+                    **Understanding the Plot**:
+                    - **Starting point (bottom)**: Baseline risk (average patient).
+                    - **Each bar**: How one factor pushes the prediction up or down.
+                    - **Red bars**: Increase risk (push toward Alzheimer's).
+                    - **Blue bars**: Decrease risk (push away from Alzheimer's).
+                    - **Final value (top)**: The patient's final risk score.
+                    
+                    **Clinical Interpretation**:
+                    - **Large red bars**: These factors significantly increase this patient's risk.
+                    - **Large blue bars**: These factors significantly decrease this patient's risk.
+                    - **Order matters**: Factors are ordered by impact (most impactful first).
+                    
+                    **Use this to**: Explain to patients and families which specific factors 
+                    are driving their risk assessment.
+                    """)
                 plt.ioff()  # Turn off interactive mode
                 try:
                     shap.waterfall_plot(shap_values[0, :, 1] if len(shap_values.shape) == 3 else shap_values[0], show=False)
@@ -421,6 +521,31 @@ def show_shap_local(model, data_dict, sample_idx, model_type):
             
             with col2:
                 st.markdown("#### Feature Contributions Bar Chart")
+                
+                # Interpretation guide
+                with st.expander("📖 How to Interpret This Chart", expanded=False):
+                    st.markdown("""
+                    **What this shows**: Which of this patient's specific factors contributed most 
+                    to their risk prediction.
+                    
+                    **Understanding the Chart**:
+                    - **Y-axis**: Clinical factors, ordered by contribution magnitude.
+                    - **X-axis**: SHAP value - how much this factor contributed.
+                    - **Red bars (positive)**: Increase this patient's risk.
+                    - **Blue bars (negative)**: Decrease this patient's risk.
+                    - **Longer bars**: More impactful factors for this specific patient.
+                    
+                    **Clinical Interpretation**:
+                    - **Top contributing factors**: These are the key factors driving this patient's risk.
+                    - **Positive values**: These patient values increase their risk.
+                    - **Negative values**: These patient values decrease their risk.
+                    
+                    **Use this to**: 
+                    - Identify which specific patient factors to focus on in clinical assessment.
+                    - Explain predictions to patients and families.
+                    - Validate that the model's reasoning aligns with clinical judgment.
+                    """)
+                
                 import matplotlib.pyplot as plt
                 contributions_df = pd.DataFrame({
                     'Feature': X_test.columns,
