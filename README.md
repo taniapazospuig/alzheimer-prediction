@@ -8,7 +8,7 @@ A comprehensive Streamlit application for predicting Alzheimer's disease using m
   1. **Introduction**: Overview of the application
   2. **Statistical Analysis**: Interactive EDA with data filtering
   3. **Model Training**: Train and evaluate 4 different ML models
-  4. **Explainability**: Understand predictions using SHAP, ELI5, and LIME
+  4. **Explainability**: Understand predictions using SHAP and LIME
   5. **Prediction**: Make predictions for individual patients
 
 - **4 Machine Learning Models**:
@@ -19,7 +19,6 @@ A comprehensive Streamlit application for predicting Alzheimer's disease using m
 
 - **Explainability Methods**:
   - SHAP (SHapley Additive exPlanations)
-  - ELI5 (Explain Like I'm 5)
   - LIME (Local Interpretable Model-agnostic Explanations)
 
 ## Installation
@@ -82,12 +81,11 @@ alzheimer-prediction/
 ├── pages/                      # Streamlit pages
 │   ├── __init__.py
 │   ├── page_1_introduction.py
-│   ├── page_2_statistical_analysis.py
-│   ├── page_3_model_training.py
-│   ├── page_4_explainability.py
-│   └── page_5_prediction.py
+│   ├── page_3_statistical_analysis.py
+│   ├── page_4_model_training.py
+│   ├── page_5_explainability.py
+│   └── page_6_prediction.py
 ├── alzheimers_disease_data.csv # Default dataset
-├── report.md         # Technical documentation
 ├── requirements.txt            # Python dependencies
 └── README.md                   # This file
 ```
