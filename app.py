@@ -60,8 +60,8 @@ page_options = [
     "📖 Introduction",
     "📊 Statistical Analysis",
     "⚙️ Model Training",
-    "🔍 Explainability",
-    "🎯 Prediction"
+    "🎯 Prediction",
+    "🔍 Explainability"
 ]
 
 # Get current page index for radio button
@@ -87,8 +87,8 @@ elif "📊 Statistical Analysis" in page or page == "3. Statistical Analysis":
     page_3_statistical_analysis.show()
 elif "⚙️ Model Training" in page or "Model Training" in page or page == "4. Model Training":
     page_4_model_training.show()
-elif "🔍 Explainability" in page or page == "5. Explainability":
-    page_5_explainability.show()
 elif "🎯 Prediction" in page or page == "6. Prediction":
     page_6_prediction.show()
+elif "🔍 Explainability" in page or page == "5. Explainability":
+    page_5_explainability.show()
 

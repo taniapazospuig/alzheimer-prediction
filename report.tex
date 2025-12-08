@@ -1,0 +1,100 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{titlesec}
+
+% Page margins
+\geometry{margin=0.8in}
+
+% Line spacing
+\singlespacing
+
+% Section formatting
+\titleformat{\section}
+{\large\bfseries}
+{}
+{0em}
+{}
+
+\titleformat{\subsection}
+{\large\bfseries}
+{}
+{0em}
+{}
+
+% Title information
+\title{\textbf{Alzheimer's Disease Prediction: An Explainable Artificial Intelligence Approach}}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Problem Statement}
+
+Alzheimer's disease represents one of the most significant public health challenges, affecting millions worldwide and placing substantial burden on healthcare systems. Early detection and intervention are critical for managing disease progression and improving patient outcomes. However, the complexity of contributing factors and subtle early symptoms present substantial challenges for clinicians in identifying patients at risk.
+
+This project addresses the need for an artificial intelligence application that enhances Alzheimer's disease prediction based on comprehensive patient health metrics while maintaining complete transparency and auditability of algorithmic decisions. The primary objective is to design and implement a machine learning system that accurately predicts Alzheimer's disease risk from clinical and demographic features, with a fundamental requirement that every prediction must be fully explainable. This emphasis on explainability is essential for clinical adoption, as healthcare providers must understand and trust the model's reasoning.
+
+The clinical context fundamentally shapes our approach. In medical diagnosis, missing a true case of Alzheimer's disease---a false negative---has severe consequences. A false negative means a patient misses critical early intervention opportunities, and disease progression continues unchecked. Therefore, our system prioritizes high sensitivity (recall) over precision, aiming to identify as many true Alzheimer's cases as possible, even if this results in some false positives that can be ruled out through further clinical testing.
+
+\section{Dataset Overview}
+
+The dataset utilized in this project is sourced from Kaggle (\url{https://www.kaggle.com/datasets/rabieelkharoua/alzheimers-disease-dataset?select=alzheimers_disease_data.csv}) and contains comprehensive clinical and demographic information for patients, with the target variable being the diagnosis of Alzheimer's disease (binary classification: 0 = No Alzheimer's, 1 = Alzheimer's). The dataset comprises 2,149 patient records with 35 features.
+
+The dataset includes features organized across several clinical domains: demographic information (age, gender, ethnicity, education level), lifestyle factors (BMI, smoking, alcohol consumption, physical activity, diet quality, sleep quality), medical history (family history of Alzheimer's, cardiovascular disease, diabetes, depression, head injury, hypertension), clinical measurements (blood pressure, cholesterol profiles), and cognitive assessments (MMSE scores, functional assessment, ADL scores, symptom indicators including memory complaints, behavioral problems, confusion, disorientation, personality changes, difficulty completing tasks, and forgetfulness).
+
+Exploratory data analysis reveals class imbalance typical for medical datasets: 1,389 patients without Alzheimer's disease (64.6\%) and 760 patients with Alzheimer's disease (35.4\%). This imbalance is addressed through class weighting and threshold optimization during model training. The dataset contains no missing values, simplifying preprocessing. Features include both continuous variables (MMSE scores, blood pressure, cholesterol levels) and categorical variables (smoking status, family history, symptom indicators).
+
+Analysis reveals expected patterns: age distribution typical of Alzheimer's populations, MMSE scores showing inverse relationship with diagnosis, and distributions of comorbidities aligning with known epidemiological patterns. Correlation analysis indicates cognitive assessment scores (MMSE, Functional Assessment, ADL) show strong relationships with the target variable, age demonstrates positive correlation, and various medical history factors show meaningful correlations, validating clinical relevance.
+
+\section{Business Questions and Objectives}
+
+This project addresses several critical business questions fundamental to deploying AI systems in clinical settings:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Can we maximize recall to minimize false negatives while maintaining acceptable accuracy?} Missing a true case of Alzheimer's disease has severe consequences, while false positives, though incurring additional testing costs, are preferable to missing patients who need intervention. The objective is to achieve high sensitivity (targeting at least 90\% recall) while maintaining reasonable precision and overall accuracy to ensure cost-effectiveness and clinical utility.
+
+\item \textbf{Can we obtain good performance using highly explainable models rather than ``black box'' approaches?} This question addresses the critical need for transparency in healthcare AI. Clinicians must understand and trust the model's reasoning to integrate it into clinical workflows. The objective is to demonstrate that interpretable models (such as decision trees) can achieve competitive performance while providing clear, understandable explanations, facilitating clinical adoption and regulatory compliance.
+
+\item \textbf{What features drive most of the Alzheimer prediction?} Understanding feature importance validates that models focus on clinically relevant factors, helps identify modifiable risk factors for prevention, and guides clinical assessment priorities. The objective is to identify and rank the most important predictive features, validate their clinical relevance, and provide both global (model-wide) and local (patient-specific) feature importance explanations.
+\end{itemize}
+
+The overall project goals encompass developing multiple machine learning models to compare performance and interpretability trade-offs, implementing comprehensive evaluation metrics, integrating explainability techniques (SHAP, LIME), and creating an interactive Streamlit application for model training, prediction, and explanation.
+
+\section{Methodology}
+
+The methodology follows a systematic approach to developing, evaluating, and explaining machine learning models. Data preprocessing performs minimal transformations to preserve clinical interpretability. The dataset is split 80--20 with stratification to maintain class distribution. Feature scaling is applied selectively using RobustScaler only for Logistic Regression, preserving original scales for tree-based models. The approach deliberately avoids extensive feature engineering to maintain clinical interpretability.
+
+Four machine learning models are implemented: Logistic Regression (interpretable linear model with directly interpretable coefficients), Decision Tree Classifier (rule-based model with human-readable decision paths), Random Forest Classifier (ensemble method with feature importance rankings), and Gradient Boosting Classifier (sequential ensemble for superior performance).
+
+Class imbalance is addressed through class weights set to `balanced' and threshold optimization using precision-recall curves to meet clinical recall targets ($\geq$90\% sensitivity) rather than default 0.5 cutoff. Evaluation employs comprehensive metrics: accuracy, precision, recall (prioritized), F1-score, ROC-AUC, and PR-AUC. Confusion matrix analysis tracks all prediction types with special attention to false negatives.
+
+The explainability approach employs SHAP (SHapley Additive exPlanations) for unified, theoretically grounded feature importance values showing both global and local explanations, and LIME (Local Interpretable Model-agnostic Explanations) for local surrogate models. These methods enable clinicians to understand feature importance globally, explain individual predictions, and validate model reasoning. The combination of inherently interpretable models and post-hoc explainability tools provides comprehensive insights.
+
+Technical implementation includes optional hyperparameter tuning using GridSearchCV with cross-validation, comprehensive model comparison across all four algorithms, and an interactive Streamlit application providing a user-friendly interface for training, evaluation, prediction, and explainability visualization.
+
+\section{Conclusions}
+
+The findings demonstrate that machine learning models can achieve strong predictive capability for Alzheimer's disease risk assessment while maintaining explainability and transparency required for clinical deployment. The implemented models, particularly Random Forest and Gradient Boosting, achieve high performance with ROC-AUC scores exceeding 0.90. Through class weighting and threshold optimization, these models achieve clinical recall targets of at least 90\% sensitivity, correctly identifying at least 90\% of true Alzheimer's cases, critical for early detection and intervention.
+
+Feature importance analysis reveals that MMSE scores, cognitive assessments, and medical history factors emerge as key predictors, aligning with established medical knowledge. The top predictive features include cognitive assessment scores (MMSE, Functional Assessment, ADL), age, and medical history factors, all recognized risk factors in medical literature. This validation demonstrates that models learn clinically meaningful patterns rather than spurious correlations.
+
+The comparison between explainable models and complex approaches demonstrates that interpretable models, particularly Decision Trees and Random Forest, can achieve competitive performance while providing superior explainability. Decision Trees offer human-readable decision rules, while Random Forest provides robust performance with easily interpretable feature importance rankings. This finding shows that clinical AI systems do not need to sacrifice performance for explainability---both can be achieved simultaneously.
+
+Explainability analysis using SHAP and LIME provides comprehensive insights. Global explanations reveal which features are most important across all predictions, validating clinical relevance. Local explanations enable understanding of individual predictions, allowing clinicians to see which specific patient factors contributed to risk assessment. This dual-level explainability is essential for clinical adoption, supporting both model validation and patient-specific decision-making.
+
+The clinical applicability is demonstrated through high sensitivity while maintaining acceptable precision. By prioritizing recall through threshold optimization, models minimize false negatives---the most critical error type in medical screening---while keeping false positives at manageable levels. The interactive Streamlit application successfully integrates all components into a user-friendly interface, demonstrating feasibility of deploying explainable AI systems in clinical settings.
+
+Limitations include dataset specificity requiring external validation before clinical deployment across different populations, use of cross-sectional data (future work could incorporate longitudinal data), and need for real-world clinical validation studies. The project successfully demonstrates that explainable artificial intelligence can enhance Alzheimer's disease prediction while maintaining transparency and auditability required for clinical adoption, providing a foundation for clinical decision support systems that improve early detection and intervention while maintaining clinician trust and regulatory compliance.
+
+\end{document}

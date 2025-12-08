@@ -27,11 +27,13 @@ def show():
     # Clinical context
     st.info("""
     **Clinical Context**: This page allows you to assess individual patient risk for Alzheimer's disease. 
-    Enter the patient's clinical information to get a risk assessment with probability scores and 
-    explanations of which factors contribute most to the assessment.
+    Enter the patient's clinical information to get a risk assessment with probability scores.
     
     **Important**: This tool supports clinical decision-making but does not replace comprehensive 
     clinical assessment. Always interpret results in the context of the full patient evaluation.
+    
+    **Want to understand which factors contributed to the prediction?** Visit the **Explainability** page 
+    after making a prediction here to see detailed explanations using SHAP or LIME methods.
     """)
     
     # Check if model is trained
@@ -41,8 +43,7 @@ def show():
         Once you've trained a model, you can use this page to:
         - Enter individual patient clinical information
         - Get risk assessments with probability scores
-        - See which factors contribute most to the risk assessment
-        - Understand the clinical reasoning behind the prediction
+        - Understand the clinical interpretation of the results
         """)
         st.stop()
     
@@ -60,86 +61,247 @@ def show():
     
     st.header("📝 Patient Clinical Information")
     st.markdown("""
-    Enter the patient's clinical information below. Default values are provided based on typical 
-    patient data, but you should customize them with the actual patient's values for accurate assessment.
+    Enter the patient's clinical information below using the sliders and dropdowns. Each feature includes 
+    a description to guide you. Default values are set to the median from the dataset, but you should 
+    customize them with the actual patient's values for accurate assessment.
     
     **Note**: More accurate input data leads to more reliable risk assessments.
     """)
     
+    # Feature descriptions based on official documentation
+    feature_descriptions = {
+        # Demographic Details
+        'Age': 'Age of the patient (60-90 years)',
+        'Gender': 'Gender: 0 = Male, 1 = Female',
+        'Ethnicity': 'Ethnicity: 0 = Caucasian, 1 = African American, 2 = Asian, 3 = Other',
+        'EducationLevel': 'Education Level: 0 = None, 1 = High School, 2 = Bachelor\'s, 3 = Higher',
+        
+        # Lifestyle Factors
+        'BMI': 'Body Mass Index (15-40)',
+        'Smoking': 'Smoking status: 0 = No, 1 = Yes',
+        'AlcoholConsumption': 'Weekly alcohol consumption in units (0-20)',
+        'PhysicalActivity': 'Weekly physical activity in hours (0-10)',
+        'DietQuality': 'Diet quality score (0-10)',
+        'SleepQuality': 'Sleep quality score (4-10)',
+        
+        # Medical History
+        'FamilyHistoryAlzheimers': 'Family history of Alzheimer\'s Disease: 0 = No, 1 = Yes',
+        'CardiovascularDisease': 'Presence of cardiovascular disease: 0 = No, 1 = Yes',
+        'Diabetes': 'Presence of diabetes: 0 = No, 1 = Yes',
+        'Depression': 'Presence of depression: 0 = No, 1 = Yes',
+        'HeadInjury': 'History of head injury: 0 = No, 1 = Yes',
+        'Hypertension': 'Presence of hypertension: 0 = No, 1 = Yes',
+        
+        # Clinical Measurements
+        'SystolicBP': 'Systolic blood pressure in mmHg (90-180)',
+        'DiastolicBP': 'Diastolic blood pressure in mmHg (60-120)',
+        'CholesterolTotal': 'Total cholesterol levels in mg/dL (150-300)',
+        'CholesterolLDL': 'Low-density lipoprotein cholesterol in mg/dL (50-200)',
+        'CholesterolHDL': 'High-density lipoprotein cholesterol in mg/dL (20-100)',
+        'CholesterolTriglycerides': 'Triglycerides levels in mg/dL (50-400)',
+        
+        # Cognitive and Functional Assessments
+        'MMSE': 'Mini-Mental State Examination score (0-30). Lower scores indicate cognitive impairment.',
+        'FunctionalAssessment': 'Functional assessment score (0-10). Lower scores indicate greater impairment.',
+        'MemoryComplaints': 'Presence of memory complaints: 0 = No, 1 = Yes',
+        'BehavioralProblems': 'Presence of behavioral problems: 0 = No, 1 = Yes',
+        'ADL': 'Activities of Daily Living score (0-10). Lower scores indicate greater impairment.',
+        
+        # Symptoms
+        'Confusion': 'Presence of confusion: 0 = No, 1 = Yes',
+        'Disorientation': 'Presence of disorientation: 0 = No, 1 = Yes',
+        'PersonalityChanges': 'Presence of personality changes: 0 = No, 1 = Yes',
+        'DifficultyCompletingTasks': 'Presence of difficulty completing tasks: 0 = No, 1 = Yes',
+        'Forgetfulness': 'Presence of forgetfulness: 0 = No, 1 = Yes',
+    }
+    
+    # Feature ranges from documentation
+    feature_ranges = {
+        'Age': (60, 90),
+        'BMI': (15, 40),
+        'AlcoholConsumption': (0, 20),
+        'PhysicalActivity': (0, 10),
+        'DietQuality': (0, 10),
+        'SleepQuality': (4, 10),
+        'SystolicBP': (90, 180),
+        'DiastolicBP': (60, 120),
+        'CholesterolTotal': (150, 300),
+        'CholesterolLDL': (50, 200),
+        'CholesterolHDL': (20, 100),
+        'CholesterolTriglycerides': (50, 400),
+        'MMSE': (0, 30),
+        'FunctionalAssessment': (0, 10),
+        'ADL': (0, 10),
+    }
+    
+    # Categorical feature options
+    categorical_options = {
+        'Gender': {0: 'Male', 1: 'Female'},
+        'Ethnicity': {0: 'Caucasian', 1: 'African American', 2: 'Asian', 3: 'Other'},
+        'EducationLevel': {0: 'None', 1: 'High School', 2: 'Bachelor\'s', 3: 'Higher'},
+        'Smoking': {0: 'No', 1: 'Yes'},
+        'FamilyHistoryAlzheimers': {0: 'No', 1: 'Yes'},
+        'CardiovascularDisease': {0: 'No', 1: 'Yes'},
+        'Diabetes': {0: 'No', 1: 'Yes'},
+        'Depression': {0: 'No', 1: 'Yes'},
+        'HeadInjury': {0: 'No', 1: 'Yes'},
+        'Hypertension': {0: 'No', 1: 'Yes'},
+        'MemoryComplaints': {0: 'No', 1: 'Yes'},
+        'BehavioralProblems': {0: 'No', 1: 'Yes'},
+        'Confusion': {0: 'No', 1: 'Yes'},
+        'Disorientation': {0: 'No', 1: 'Yes'},
+        'PersonalityChanges': {0: 'No', 1: 'Yes'},
+        'DifficultyCompletingTasks': {0: 'No', 1: 'Yes'},
+        'Forgetfulness': {0: 'No', 1: 'Yes'},
+    }
+    
+    # Organize features into categories
+    categories = {
+        'Demographic Details': ['Age', 'Gender', 'Ethnicity', 'EducationLevel'],
+        'Lifestyle Factors': ['BMI', 'Smoking', 'AlcoholConsumption', 'PhysicalActivity', 'DietQuality', 'SleepQuality'],
+        'Medical History': ['FamilyHistoryAlzheimers', 'CardiovascularDisease', 'Diabetes', 'Depression', 'HeadInjury', 'Hypertension'],
+        'Clinical Measurements': ['SystolicBP', 'DiastolicBP', 'CholesterolTotal', 'CholesterolLDL', 'CholesterolHDL', 'CholesterolTriglycerides'],
+        'Cognitive and Functional Assessments': ['MMSE', 'FunctionalAssessment', 'MemoryComplaints', 'BehavioralProblems', 'ADL'],
+        'Symptoms': ['Confusion', 'Disorientation', 'PersonalityChanges', 'DifficultyCompletingTasks', 'Forgetfulness'],
+    }
+    
     # Create input form
     patient_data = {}
     
-    # Organize features into categories
-    numerical_features = []
-    categorical_features = []
+    # Process each category
+    for category_name, features_in_category in categories.items():
+        # Filter to only include features that are actually in feature_names
+        features_in_category = [f for f in features_in_category if f in feature_names]
+        
+        if not features_in_category:
+            continue
+            
+        st.subheader(f"📋 {category_name}")
+        
+        # Create columns (2 columns for better layout)
+        num_cols = 2
+        num_rows = (len(features_in_category) + num_cols - 1) // num_cols
+        
+        for i in range(num_rows):
+            cols = st.columns(num_cols)
+            for j in range(num_cols):
+                idx = i * num_cols + j
+                if idx < len(features_in_category):
+                    feat = features_in_category[idx]
+                    with cols[j]:
+                        # Get description
+                        description = feature_descriptions.get(feat, f'{feat} value')
+                        
+                        # Determine if categorical or continuous
+                        if feat in categorical_options:
+                            # Categorical feature - use selectbox
+                            options_dict = categorical_options[feat]
+                            options_list = list(options_dict.keys())
+                            labels_list = [options_dict[k] for k in options_list]
+                            
+                            # Get default value
+                            if default_data is not None and feat in default_data.columns:
+                                default_val = int(default_data[feat].median())
+                                if default_val not in options_list:
+                                    default_val = options_list[0]
+                                default_idx = options_list.index(default_val)
+                            else:
+                                default_idx = 0
+                            
+                            selected_label = st.selectbox(
+                                feat,
+                                options=labels_list,
+                                index=default_idx,
+                                help=description,
+                                key=f"pred_{feat}"
+                            )
+                            # Get the numeric value corresponding to the selected label
+                            patient_data[feat] = options_list[labels_list.index(selected_label)]
+                        else:
+                            # Continuous feature - use slider
+                            if feat in feature_ranges:
+                                min_val, max_val = feature_ranges[feat]
+                                # Convert to float to ensure type consistency
+                                min_val = float(min_val)
+                                max_val = float(max_val)
+                            elif default_data is not None and feat in default_data.columns:
+                                min_val = float(default_data[feat].min())
+                                max_val = float(default_data[feat].max())
+                            else:
+                                min_val, max_val = 0.0, 100.0
+                            
+                            # Get default value
+                            if default_data is not None and feat in default_data.columns:
+                                default_val = float(default_data[feat].median())
+                            else:
+                                default_val = float((min_val + max_val) / 2)
+                            
+                            # Determine step size (ensure it's float)
+                            range_size = max_val - min_val
+                            if range_size < 10:
+                                step = 0.1
+                            elif range_size < 100:
+                                step = 1.0
+                            else:
+                                step = 5.0
+                            
+                            # Ensure all values are float for consistency
+                            patient_data[feat] = st.slider(
+                                feat,
+                                min_value=min_val,
+                                max_value=max_val,
+                                value=default_val,
+                                step=step,
+                                help=description,
+                                key=f"pred_{feat}"
+                            )
     
-    for feat in feature_names:
-        if default_data is not None and feat in default_data.columns:
-            if default_data[feat].dtype in ['int64', 'float64']:
-                numerical_features.append(feat)
-            else:
-                categorical_features.append(feat)
-        else:
-            numerical_features.append(feat)
-    
-    # Create columns for better layout
-    num_cols = 3
-    num_rows = (len(numerical_features) + num_cols - 1) // num_cols
-    
-    st.subheader("Numerical Features")
-    for i in range(num_rows):
-        cols = st.columns(num_cols)
-        for j in range(num_cols):
-            idx = i * num_cols + j
-            if idx < len(numerical_features):
-                feat = numerical_features[idx]
-                with cols[j]:
-                    if default_data is not None and feat in default_data.columns:
-                        min_val = float(default_data[feat].min())
-                        max_val = float(default_data[feat].max())
-                        default_val = float(default_data[feat].median())
-                        patient_data[feat] = st.number_input(
-                            feat,
-                            min_value=min_val,
-                            max_value=max_val,
-                            value=default_val,
-                            key=f"num_{feat}"
-                        )
-                    else:
-                        patient_data[feat] = st.number_input(
-                            feat,
-                            value=0.0,
-                            key=f"num_{feat}"
-                        )
-    
-    if categorical_features:
-        st.subheader("Categorical Features")
-        cat_cols = st.columns(min(len(categorical_features), 3))
-        for idx, feat in enumerate(categorical_features):
-            with cat_cols[idx % 3]:
-                if default_data is not None and feat in default_data.columns:
-                    unique_vals = sorted(default_data[feat].unique())
-                    default_val = int(default_data[feat].median()) if len(unique_vals) > 0 else unique_vals[0]
-                    patient_data[feat] = st.selectbox(
-                        feat,
-                        options=unique_vals,
-                        index=unique_vals.index(default_val) if default_val in unique_vals else 0,
-                        key=f"cat_{feat}"
-                    )
+    # Handle any features not in categories
+    uncategorized_features = [f for f in feature_names if f not in [item for sublist in categories.values() for item in sublist]]
+    if uncategorized_features:
+        st.subheader("📋 Other Features")
+        for feat in uncategorized_features:
+            if default_data is not None and feat in default_data.columns:
+                description = feature_descriptions.get(feat, f'{feat} value')
+                
+                if feat in feature_ranges:
+                    min_val, max_val = feature_ranges[feat]
+                    min_val = float(min_val)
+                    max_val = float(max_val)
                 else:
-                    patient_data[feat] = st.number_input(
-                        feat,
-                        value=0,
-                        key=f"cat_{feat}"
-                    )
+                    min_val = float(default_data[feat].min())
+                    max_val = float(default_data[feat].max())
+                
+                default_val = float(default_data[feat].median())
+                
+                range_size = max_val - min_val
+                step = 0.1 if range_size < 10 else (1.0 if range_size < 100 else 5.0)
+                
+                patient_data[feat] = st.slider(
+                    feat,
+                    min_value=min_val,
+                    max_value=max_val,
+                    value=default_val,
+                    step=step,
+                    help=description,
+                    key=f"pred_{feat}"
+                )
+            else:
+                patient_data[feat] = 0.0
     
     # Prediction button
     if st.button("🔮 Make Prediction", type="primary"):
+        # Store patient data in session state for use in explainability page
+        st.session_state.patient_data_for_explainability = patient_data.copy()
+        
         # Convert to DataFrame
         patient_df = pd.DataFrame([patient_data])
         
         # Ensure correct order and all features present
         patient_df = patient_df.reindex(columns=feature_names, fill_value=0)
+        
+        # Store unscaled patient_df for explainability (before scaling)
+        st.session_state.patient_df_for_explainability = patient_df.copy()
         
         # Scale if needed (for Logistic Regression)
         if model_type == "Logistic Regression" and 'scaler' in data_dict:
@@ -151,6 +313,10 @@ def show():
         try:
             prediction = model.predict(patient_df)[0]
             probability = model.predict_proba(patient_df)[0]
+            
+            # Store prediction results for explainability page
+            st.session_state.last_prediction = prediction
+            st.session_state.last_probability = probability
             
             st.header("📊 Prediction Results")
             
@@ -224,124 +390,25 @@ def show():
                   (though we optimize to minimize this).
                 - **Use with clinical judgment**: Always combine with comprehensive clinical assessment.
                 
-                **Next Steps**: Use the feature contributions below to understand which specific 
-                factors are driving this patient's risk assessment.
+                **Next Steps**: Visit the **Explainability** page to see detailed explanations of which 
+                specific factors contributed to this patient's risk assessment using SHAP or LIME methods.
                 """)
             
-            # Feature importance for this prediction
-            st.subheader("🔍 Factors Contributing to Risk Assessment")
-            st.markdown("""
-            The following shows which clinical factors are most important for this patient's risk assessment. 
-            This helps you understand which specific patient characteristics are driving the prediction.
+            st.markdown("---")
+            
+            # Link to explainability page
+            st.info("""
+            **🔍 Want to understand which factors contributed to this prediction?** 
+            
+            Go to the **Explainability** page to see:
+            - Which clinical factors are most important for this specific patient
+            - How each factor pushed the prediction toward or away from Alzheimer's
+            - Detailed visualizations using SHAP or LIME methods
+            
+            **💡 Tip**: The patient data you just entered has been saved and will be automatically loaded 
+            in the Explainability page. You can modify it there if needed, or use it as-is to get explanations 
+            for this exact prediction.
             """)
-            
-            # Get feature importance based on model type
-            if hasattr(model, 'feature_importances_'):
-                importances = model.feature_importances_
-            elif hasattr(model, 'coef_'):
-                importances = np.abs(model.coef_[0])
-            else:
-                importances = np.ones(len(feature_names))
-            
-            # For tree models, we can't easily get per-instance contributions
-            # So we show general feature importance
-            importance_df = pd.DataFrame({
-                'Feature': feature_names,
-                'Importance': importances,
-                'Patient Value': patient_df.iloc[0].values
-            }).sort_values('Importance', ascending=False)
-            
-            st.dataframe(importance_df.head(15), width='stretch')
-            
-            # Visualizations side by side
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("#### Most Important Clinical Factors")
-                
-                # Interpretation guide
-                with st.expander("📖 How to Interpret This Chart", expanded=False):
-                    st.markdown("""
-                    **What this shows**: Which clinical factors the model considers most important 
-                    for this patient's risk assessment.
-                    
-                    **Understanding the Chart**:
-                    - **Y-axis**: Clinical factors, ordered by importance.
-                    - **X-axis**: Importance score - how much the model relies on this factor.
-                    - **Longer bars**: More important factors for this patient.
-                    
-                    **Clinical Use**: 
-                    - Focus your clinical assessment on the top-ranked factors.
-                    - Validate that these factors align with your clinical assessment.
-                    - Use this to explain the risk assessment to patients and families.
-                    """)
-                
-                import matplotlib.pyplot as plt
-                fig1, ax1 = plt.subplots(figsize=(6, 5))
-                top_features = importance_df.head(10)
-                ax1.barh(range(len(top_features)), top_features['Importance'])
-                ax1.set_yticks(range(len(top_features)))
-                ax1.set_yticklabels(top_features['Feature'], fontsize=9)
-                ax1.set_xlabel('Importance', fontsize=10)
-                ax1.set_title('Top 10 Most Important Clinical Factors', fontsize=11)
-                plt.tight_layout()
-                st.pyplot(fig1, width='stretch')
-            
-            with col2:
-                st.markdown("#### Patient Values vs Population Average")
-                
-                # Interpretation guide
-                with st.expander("📖 How to Interpret This Chart", expanded=False):
-                    st.markdown("""
-                    **What this shows**: How this patient's values compare to the average patient 
-                    in the dataset for the most important clinical factors.
-                    
-                    **Understanding the Chart**:
-                    - **Blue bars**: This patient's actual values.
-                    - **Orange bars**: Average values from the dataset.
-                    - **Differences**: Show how this patient differs from the average.
-                    
-                    **Clinical Interpretation**:
-                    - **Patient values higher than average**: May indicate increased risk 
-                      (depending on the factor - e.g., age, blood pressure).
-                    - **Patient values lower than average**: May indicate decreased risk 
-                      (e.g., higher MMSE scores, better cognitive function).
-                    - **Use this to**: Identify which of this patient's specific values 
-                      are most concerning compared to typical patients.
-                    """)
-                
-                # Compare patient values with dataset average
-                if default_data is not None:
-                    fig2, ax2 = plt.subplots(figsize=(6, 5))
-                    top_features = importance_df.head(10)
-                    patient_vals = top_features['Patient Value'].values
-                    avg_vals = [default_data[feat].mean() if feat in default_data.columns else 0 
-                               for feat in top_features['Feature']]
-                    
-                    x = np.arange(len(top_features))
-                    width = 0.35
-                    ax2.barh(x - width/2, patient_vals, width, label='Patient Value', alpha=0.7)
-                    ax2.barh(x + width/2, avg_vals, width, label='Dataset Average', alpha=0.7)
-                    ax2.set_yticks(x)
-                    ax2.set_yticklabels(top_features['Feature'], fontsize=9)
-                    ax2.set_xlabel('Value', fontsize=10)
-                    ax2.set_title('Patient vs Average Values', fontsize=11)
-                    ax2.legend(fontsize=9)
-                    plt.tight_layout()
-                    st.pyplot(fig2, width='stretch')
-                else:
-                    st.info("Dataset not available for comparison")
-            
-            # Patient values for top features
-            st.subheader("📋 Patient Clinical Values (Most Important Factors)")
-            st.markdown("""
-            Review the patient's actual values for the factors that most influence their risk assessment.
-            """)
-            top_features = importance_df.head(10)
-            top_patient_values = pd.DataFrame({
-                'Clinical Factor': top_features['Feature'],
-                'Patient Value': top_features['Patient Value']
-            })
-            st.dataframe(top_patient_values, width='stretch')
             
         except Exception as e:
             st.error(f"Error making prediction: {str(e)}")

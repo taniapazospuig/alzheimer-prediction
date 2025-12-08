@@ -189,7 +189,8 @@ def show():
         with col8:
             fp = metrics['False Positives']
             st.metric("False Positives", fp,
-                     delta=f"{fp} false alarms" if fp > 0 else "None")
+                     delta=f"⚠️ {fp} false alarms" if fp > 0 else "✅ None",
+                     delta_color="inverse" if fp > 0 else "normal")
         
         # Detailed metrics table
         st.subheader("📋 Detailed Metrics")

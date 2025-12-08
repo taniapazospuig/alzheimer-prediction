@@ -62,20 +62,20 @@ def show():
             "nav_page": "⚙️ Model Training"
         },
         {
-            "page": "Explainability",
-            "icon": "🔍",
-            "short_desc": "Understand how the model makes predictions",
-            "description": "See which clinical factors are most important for predictions and understand why specific patients are flagged as high risk.",
-            "features": ["Feature importance analysis", "Individual prediction explanations", "SHAP, ELI5, LIME methods", "Clinical context"],
-            "nav_page": "🔍 Explainability"
-        },
-        {
             "page": "Prediction",
             "icon": "🎯",
             "short_desc": "Assess individual patient risk",
             "description": "Enter patient clinical information to get risk assessments with probability scores and understand the clinical reasoning behind predictions.",
             "features": ["Patient data input", "Risk assessment", "Probability scores", "Factor contributions"],
             "nav_page": "🎯 Prediction"
+        },
+        {
+            "page": "Explainability",
+            "icon": "🔍",
+            "short_desc": "Understand how the model makes predictions",
+            "description": "See which clinical factors are most important for predictions and understand why specific patients are flagged as high risk.",
+            "features": ["Feature importance analysis", "Individual prediction explanations", "SHAP and LIME methods", "Clinical context"],
+            "nav_page": "🔍 Explainability"
         }
     ]
     
@@ -186,8 +186,8 @@ def show():
         {"step": "1", "title": "Start Here", "desc": "Review this introduction to understand the tool's capabilities", "icon": "📍"},
         {"step": "2", "title": "Explore Data", "desc": "Use Statistical Analysis to understand patient characteristics", "icon": "📊"},
         {"step": "3", "title": "Train Model", "desc": "Train a prediction model and review performance metrics", "icon": "⚙️"},
-        {"step": "4", "title": "Understand Model", "desc": "See which clinical factors the model considers important", "icon": "🔍"},
-        {"step": "5", "title": "Assess Patients", "desc": "Enter patient information to get risk assessments", "icon": "🎯"}
+        {"step": "4", "title": "Assess Patients", "desc": "Enter patient information to get risk assessments", "icon": "🎯"},
+        {"step": "5", "title": "Understand Model", "desc": "See which clinical factors the model considers important", "icon": "🔍"}
     ]
     
     # Display workflow in a horizontal layout
